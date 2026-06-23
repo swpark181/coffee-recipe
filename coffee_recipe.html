@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☕ 커피 레시피 추천</title>
+<style>
+  :root {
+    --bg: #1a1208;
+    --surface: #2a1f10;
+    --surface2: #3a2d1a;
+    --accent: #c8873a;
+    --accent2: #e8b060;
+    --text: #f0e6d3;
+    --text2: #b0a090;
+    --danger: #e05040;
+    --success: #60b060;
+    --border: #4a3820;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; min-height: 100vh; }
+
+  /* NAV */
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 8px; height: 56px; position: sticky; top: 0; z-index: 100; }
+  nav .logo { font-size: 20px; font-weight: 700; color: var(--accent2); margin-right: 16px; }
+  nav button { background: none; border: none; color: var(--text2); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all .2s; }
+  nav button.active, nav button:hover { background: var(--accent); color: #fff; }
+
+  /* MAIN */
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent2); }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+
+  /* FORM ELEMENTS */
+  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  select, input[type="number"], input[type="text"], textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 12px; font-size: 14px;
+    outline: none; transition: border .2s;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 16px; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-outline { background: none; border: 1px solid var(--border); color: var(--text2); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* METHOD TOGGLE */
+  .method-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+  .method-btn { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; text-align: center; transition: all .2s; font-size: 15px; }
+  .method-btn.active { border-color: var(--accent); background: rgba(200,135,58,0.15); color: var(--accent2); }
+  .method-btn span { display: block; font-size: 24px; margin-bottom: 4px; }
+
+  /* RECIPE RESULT */
+  .recipe-box { background: var(--surface2); border: 1px solid var(--accent); border-radius: 10px; padding: 20px; margin-top: 16px; }
+  .recipe-box .recipe-title { font-size: 16px; font-weight: 700; color: var(--accent2); margin-bottom: 12px; }
+  .recipe-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .recipe-row:last-child { border-bottom: none; }
+  .recipe-row .key { font-size: 13px; color: var(--text2); }
+  .recipe-row .val { font-size: 14px; font-weight: 600; color: var(--text); }
+  .recipe-note { margin-top: 12px; font-size: 13px; color: var(--text2); line-height: 1.6; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; }
+
+  /* ROAST SLIDER */
+  .roast-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .roast-chip { flex: 1; padding: 8px 4px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; border: 2px solid transparent; transition: all .2s; }
+  .roast-chip:nth-child(1) { background: #c8a060; color: #000; }
+  .roast-chip:nth-child(2) { background: #a07840; color: #fff; }
+  .roast-chip:nth-child(3) { background: #805830; color: #fff; }
+  .roast-chip:nth-child(4) { background: #603820; color: #fff; }
+  .roast-chip:nth-child(5) { background: #402010; color: #fff; }
+  .roast-chip.selected { border-color: var(--accent2); box-shadow: 0 0 0 2px var(--accent2); }
+
+  /* GRIND SLIDER */
+  .grind-slider-wrap { margin-top: 8px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .grind-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .grind-value { text-align: center; font-size: 22px; font-weight: 700; color: var(--accent2); margin: 6px 0 2px; }
+  .grind-desc { text-align: center; font-size: 12px; color: var(--text2); }
+
+  /* TASTE RATING */
+  .taste-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .taste-item label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .taste-item input[type="range"] { accent-color: var(--accent); }
+  .taste-item .taste-val { text-align: right; font-size: 12px; color: var(--accent2); margin-top: 2px; }
+
+  /* LOG LIST */
+  .log-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; position: relative; }
+  .log-item .log-date { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .log-item .log-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .log-item .log-method { font-size: 13px; font-weight: 700; color: var(--accent2); }
+  .log-item .log-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tag { background: rgba(200,135,58,0.2); color: var(--accent2); font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+  .tag.sour { background: rgba(200,200,60,0.2); color: #d0d060; }
+  .tag.bitter { background: rgba(100,60,200,0.2); color: #9060d0; }
+  .log-item .log-note { font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.5; }
+  .log-item .delete-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--text2); cursor: pointer; font-size: 16px; }
+  .log-item .delete-btn:hover { color: var(--danger); }
+
+  /* BRAND DB */
+  .brand-search { margin-bottom: 16px; }
+  .brand-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 10px; }
+  .brand-name { font-size: 15px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .brand-loc { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .brand-blends { display: flex; flex-wrap: wrap; gap: 6px; }
+  .blend-chip { background: rgba(200,135,58,0.15); border: 1px solid rgba(200,135,58,0.3); color: var(--text); font-size: 12px; padding: 4px 10px; border-radius: 20px; cursor: pointer; transition: all .2s; }
+  .blend-chip:hover { background: rgba(200,135,58,0.3); }
+
+  /* SUGGESTION BOX */
+  .suggestion-box { background: rgba(96,176,96,0.1); border: 1px solid rgba(96,176,96,0.4); border-radius: 10px; padding: 16px; margin-top: 16px; }
+  .suggestion-box h3 { color: var(--success); font-size: 15px; margin-bottom: 10px; }
+  .suggestion-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(96,176,96,0.2); font-size: 13px; }
+  .suggestion-row:last-child { border-bottom: none; }
+  .suggestion-row .s-key { color: var(--text2); }
+  .suggestion-row .s-val { color: var(--success); font-weight: 600; }
+  .suggestion-row .s-change { font-size: 11px; color: var(--text2); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 48px 20px; color: var(--text2); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* BADGE */
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .badge-light { background: #c8a060; color: #000; }
+  .badge-medium { background: #805830; color: #fff; }
+  .badge-dark { background: #402010; color: #fff; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .taste-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">☕ 커피 레시피</div>
+  <button class="active" onclick="showPage('recipe')">레시피 추천</button>
+  <button onclick="showPage('log')">추출 기록</button>
+  <button onclick="showPage('brands')">브랜드 DB</button>
+</nav>
+
+<main>
+
+<!-- ===== PAGE: RECIPE ===== -->
+<div id="page-recipe" class="page active">
+
+  <div class="method-toggle">
+    <div class="method-btn active" id="btn-espresso" onclick="setMethod('espresso')">
+      <span>☕</span> 에스프레소
+    </div>
+    <div class="method-btn" id="btn-pourover" onclick="setMethod('pourover')">
+      <span>🫖</span> 푸어오버
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>원두 정보</h2>
+    <div class="grid2">
+      <div class="form-group">
+        <label>로스터리 / 원두명</label>
+        <input type="text" id="bean-name" placeholder="예: 프릳츠 에스프레소 블렌드" list="brand-suggestions">
+        <datalist id="brand-suggestions"></datalist>
+      </div>
+      <div class="form-group" id="pourover-dripper-wrap" style="display:none">
+        <label>드리퍼</label>
+        <select id="dripper">
+          <option value="v60">하리오 V60</option>
+          <option value="kalita">칼리타 웨이브</option>
+          <option value="chemex">케멕스</option>
+          <option value="origami">오리가미</option>
+          <option value="aeropress">에어로프레스</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>배전도 (로스트 레벨)</label>
+      <div class="roast-bar" id="roast-bar">
+        <div class="roast-chip selected" data-roast="light" onclick="setRoast('light')">라이트</div>
+        <div class="roast-chip" data-roast="medium-light" onclick="setRoast('medium-light')">미디엄<br>라이트</div>
+        <div class="roast-chip" data-roast="medium" onclick="setRoast('medium')">미디엄</div>
+        <div class="roast-chip" data-roast="medium-dark" onclick="setRoast('medium-dark')">미디엄<br>다크</div>
+        <div class="roast-chip" data-roast="dark" onclick="setRoast('dark')">다크</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>분쇄도 <span id="grind-unit-label" style="color:var(--accent2)">(에스프레소 기준)</span></label>
+      <div class="grind-slider-wrap">
+        <div class="grind-value" id="grind-display">10</div>
+        <div class="grind-desc" id="grind-desc-text">중간 정도의 에스프레소 분쇄도</div>
+        <input type="range" id="grind-slider" min="1" max="40" value="10" oninput="updateGrind(this.value)">
+        <div class="grind-labels">
+          <span>가늘게 (Fine)</span>
+          <span>굵게 (Coarse)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="espresso-params">
+    <h2>에스프레소 파라미터</h2>
+    <div class="grid3">
+      <div class="form-group">
+        <label>투입량 (Dose, g)</label>
+        <input type="number" id="dose" value="18" min="14" max="22" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>목표 수율 (Yield, g)</label>
+        <input type="number" id="yield" value="36" min="20" max="80" step="1">
+      </div>
+      <div class="form-group">
+        <label>추출 시간 목표 (초)</label>
+        <input type="number" id="time" value="28" min="15" max="60" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="pourover-params" style="display:none">
+    <h2>푸어오버 파라미터</h2>
+    <div class="grid2">
+      <div class="form-group">
+        <label>원두량 (g)</label>
+        <input type="number" id="po-dose" value="15" min="10" max="30" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>물 온도 (°C)</label>
+        <input type="number" id="po-temp" value="92" min="85" max="99" step="1">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="getRecipe()" style="width:100%;justify-content:center;padding:14px;font-size:15px">
+    🔍 레시피 추천받기
+  </button>
+
+  <div id="recipe-result" style="display:none">
+    <div class="recipe-box" id="recipe-content"></div>
+  </div>
+
+  <!-- 이전 기록 기반 제안 -->
+  <div id="suggestion-section" style="display:none;margin-top:16px">
+    <div class="suggestion-box" id="suggestion-content"></div>
+  </div>
+
+</div><!-- /page-recipe -->
+
+<!-- ===== PAGE: LOG ===== -->
+<div id="page-log" class="page">
+  <div class="card">
+    <h2>오늘 추출 기록 남기기</h2>
+
+    <div class="grid2">
+      <div class="form-group">
+        <label>추출 방식</label>
+        <select id="log-method">
+          <option value="espresso">에스프레소</option>
+          <option value="v60">V60 푸어오버</option>
+          <option value="kalita">칼리타 웨이브</option>
+          <option value="chemex">케멕스</option>
+          <option value="aeropress">에어로프레스</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>원두명</label>
+        <input type="text" id="log-bean" placeholder="예: 테라로사 과테말라" list="brand-suggestions">
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="form-group">
+        <label>분쇄도</label>
+        <input type="number" id="log-grind" placeholder="예: 10" min="1" max="40">
+      </div>
+      <div class="form-group">
+        <label>투입량 (g)</label>
+        <input type="number" id="log-dose" placeholder="18" min="10" max="30" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>수율/물량 (g)</label>
+        <input type="number" id="log-yield" placeholder="36" min="20" max="500">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="form-group">
+        <label>추출 시간 (초)</label>
+        <input type="number" id="log-time" placeholder="28" min="10" max="300">
+      </div>
+      <div class="form-group">
+        <label>배전도</label>
+        <select id="log-roast">
+          <option value="light">라이트</option>
+          <option value="medium-light">미디엄 라이트</option>
+          <option value="medium" selected>미디엄</option>
+          <option value="medium-dark">미디엄 다크</option>
+          <option value="dark">다크</option>
+        </select>
+      </div>
+    </div>
+
+    <hr>
+    <h3>맛 평가</h3>
+    <div class="taste-grid">
+      <div class="taste-item">
+        <label>신맛 (산미) &nbsp; <span id="taste-sour-val">3</span>/5</label>
+        <input type="range" min="1" max="5" value="3" id="taste-sour" oninput="document.getElementById('taste-sour-val').textContent=this.value">
+      </div>
+      <div class="taste-item">
+        <label>쓴맛 &nbsp; <span id="taste-bitter-val">3</span>/5</label>
+        <input type="range" min="1" max="5" value="3" id="taste-bitter" oninput="document.getElementById('taste-bitter-val').textContent=this.value">
+      </div>
+      <div class="taste-item">
+        <label>바디감 &nbsp; <span id="taste-body-val">3</span>/5</label>
+        <input type="range" min="1" max="5" value="3" id="taste-body" oninput="document.getElementById('taste-body-val').textContent=this.value">
+      </div>
+      <div class="taste-item">
+        <label>단맛 &nbsp; <span id="taste-sweet-val">3</span>/5</label>
+        <input type="range" min="1" max="5" value="3" id="taste-sweet" oninput="document.getElementById('taste-sweet-val').textContent=this.value">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:16px">
+      <label>전반적 만족도</label>
+      <select id="log-satisfaction">
+        <option value="great">😍 아주 좋음 — 레시피 유지</option>
+        <option value="good" selected>😊 좋음 — 약간 조정</option>
+        <option value="sour">😬 너무 셔요 (과소추출)</option>
+        <option value="bitter">😖 너무 써요 (과다추출)</option>
+        <option value="weak">😐 맛이 연해요</option>
+        <option value="strong">😵 너무 진해요</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>메모</label>
+      <textarea id="log-note" placeholder="오늘 추출에서 느낀 점을 자유롭게 적어주세요..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveLog()" style="width:100%;justify-content:center">💾 기록 저장</button>
+  </div>
+
+  <div id="log-list"></div>
+</div><!-- /page-log -->
+
+<!-- ===== PAGE: BRANDS ===== -->
+<div id="page-brands" class="page">
+  <div class="card">
+    <h2>🇰🇷 국내 주요 로스터리</h2>
+    <div class="brand-search form-group">
+      <input type="text" id="brand-filter" placeholder="로스터리 또는 원두 이름 검색..." oninput="filterBrands(this.value)">
+    </div>
+    <div id="brand-list"></div>
+  </div>
+</div><!-- /page-brands -->
+
+</main>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const ROAST_LABELS = {
+  'light': '라이트',
+  'medium-light': '미디엄 라이트',
+  'medium': '미디엄',
+  'medium-dark': '미디엄 다크',
+  'dark': '다크'
+};
+
+// 에스프레소: 분쇄도 1(극세) ~ 40(coarse 참고), 보통 8~15 범위
+// 푸어오버: 분쇄도 1(극세) ~ 40(coarse), 보통 18~28 범위
+const GRIND_DESCS = {
+  espresso: {
+    ranges: [
+      { max: 6,  label: '매우 가는 분쇄 — 바스켓 막힘 주의, 추출 시간 크게 늘어남' },
+      { max: 10, label: '가는 편 — 에스프레소 표준 범위 하단' },
+      { max: 14, label: '에스프레소 표준 분쇄도' },
+      { max: 18, label: '약간 굵은 편 — 추출 시간 단축됨' },
+      { max: 40, label: '굵은 분쇄 — 에스프레소보다 아메리카노/클레버 적합' },
+    ]
+  },
+  pourover: {
+    ranges: [
+      { max: 12, label: '너무 가는 편 — 과다추출 위험, 쓴맛 강해짐' },
+      { max: 18, label: '가는 분쇄 — 미디엄~다크 로스팅 푸어오버에 적합' },
+      { max: 24, label: '편어오버 표준 분쇄도 (중간)' },
+      { max: 30, label: '굵은 편 — 라이트 로스팅 또는 케멕스에 적합' },
+      { max: 40, label: '매우 굵은 분쇄 — 과소추출 위험' },
+    ]
+  }
+};
+
+// Espresso recipe templates by roast
+const ESP_RECIPES = {
+  'light': {
+    grind: '8~11', dose: 18, yield: 36, time: '28~32초',
+    ratio: '1:2', temp: '93~95°C',
+    note: '라이트 로스팅은 밀도가 높아 좀 더 가늘게 갈고, 물 온도를 높여 추출합니다. 과소추출 시 신맛이 강해지므로 시간을 늘려보세요. 밝고 복잡한 플레이버가 특징.'
+  },
+  'medium-light': {
+    grind: '9~12', dose: 18, yield: 36, time: '27~30초',
+    ratio: '1:2', temp: '92~94°C',
+    note: '균형 잡힌 산미와 단맛. 스페셜티 블렌드나 싱글오리진에 자주 쓰이는 배전도입니다. 추출 비율 1:2~1:2.2 사이에서 테스트해보세요.'
+  },
+  'medium': {
+    grind: '10~13', dose: 18, yield: 36, time: '25~30초',
+    ratio: '1:2', temp: '90~93°C',
+    note: '가장 범용적인 배전도. 크레마가 잘 형성되고 바디감이 좋습니다. 라떼, 카푸치노에도 잘 어울립니다.'
+  },
+  'medium-dark': {
+    grind: '11~14', dose: 18, yield: 36, time: '24~28초',
+    ratio: '1:2', temp: '88~92°C',
+    note: '진한 바디와 초콜릿·캐러멜 풍미가 강조됩니다. 너무 굵으면 쓴맛이 줄어들지만 싱겁고, 너무 가늘면 과다추출 됩니다.'
+  },
+  'dark': {
+    grind: '12~16', dose: 18, yield: 38, time: '22~27초',
+    ratio: '1:2.1', temp: '86~90°C',
+    note: '다크 로스팅은 다공성이 높아 추출이 빨리 됩니다. 약간 굵게 갈고 물 온도를 낮춰 쓴맛을 잡아주세요. 묵직한 바디와 스모키한 풍미.'
+  }
+};
+
+// Pourover recipe templates by roast x dripper
+const PO_RECIPES = {
+  v60: {
+    'light':       { grind: '24~28', ratio: '1:15', time: '3:00~3:30', temp: '94~96°C', bloom: '30ml × 30초', pour: '분할 2~3회 투여 (스윙 기법)', note: 'V60은 추출 속도가 빠릅니다. 라이트 로스팅은 굵게 갈수록 과소추출 위험이 있으니, 중간 굵기에서 시작하세요.' },
+    'medium-light':{ grind: '22~26', ratio: '1:15', time: '2:45~3:15', temp: '92~95°C', bloom: '30ml × 30초', pour: '2~3회 분할', note: '스페셜티 빈의 테루아를 살리려면 온도를 높게 유지하세요.' },
+    'medium':      { grind: '20~24', ratio: '1:15', time: '2:30~3:00', temp: '90~93°C', bloom: '30ml × 30초', pour: '2~3회 분할', note: '균형 잡힌 바디와 산미. 일반 가정용 빈에 가장 적합한 레시피입니다.' },
+    'medium-dark': { grind: '18~22', ratio: '1:14', time: '2:20~2:50', temp: '88~91°C', bloom: '25ml × 25초', pour: '2회 분할', note: '짧게 추출하여 쓴맛을 억제하세요.' },
+    'dark':        { grind: '16~20', ratio: '1:13', time: '2:00~2:30', temp: '85~89°C', bloom: '20ml × 20초', pour: '1~2회 분할', note: '다크 로스팅은 과다추출 되기 쉬우므로 물 온도를 낮추고 짧게 내립니다.' },
+  },
+  kalita: {
+    'light':       { grind: '24~28', ratio: '1:15', time: '3:00~3:30', temp: '93~96°C', bloom: '30ml × 30초', pour: '3회 분할', note: '칼리타 웨이브는 추출이 균일하여 실패가 적습니다. 라이트 빈의 산미를 잘 살려줍니다.' },
+    'medium-light':{ grind: '22~26', ratio: '1:15', time: '2:45~3:15', temp: '91~94°C', bloom: '30ml × 30초', pour: '3회 분할', note: '' },
+    'medium':      { grind: '20~24', ratio: '1:15', time: '2:30~3:00', temp: '89~92°C', bloom: '30ml × 30초', pour: '3회 분할', note: '칼리타 특유의 균일한 추출로 실패 없는 레시피.' },
+    'medium-dark': { grind: '18~22', ratio: '1:14', time: '2:20~2:50', temp: '87~90°C', bloom: '25ml × 25초', pour: '2회 분할', note: '' },
+    'dark':        { grind: '16~20', ratio: '1:13', time: '2:00~2:30', temp: '85~88°C', bloom: '20ml × 20초', pour: '2회 분할', note: '' },
+  },
+  chemex: {
+    'light':       { grind: '26~30', ratio: '1:16', time: '3:30~4:00', temp: '94~96°C', bloom: '40ml × 45초', pour: '2~3회 분할', note: '케멕스는 두꺼운 필터 덕분에 오일이 걸러져 클린하고 맑은 컵을 만듭니다. 굵게 갈아야 막힘 없이 내려집니다.' },
+    'medium-light':{ grind: '24~28', ratio: '1:15', time: '3:15~3:45', temp: '92~95°C', bloom: '35ml × 40초', pour: '2~3회 분할', note: '' },
+    'medium':      { grind: '22~26', ratio: '1:15', time: '3:00~3:30', temp: '90~93°C', bloom: '30ml × 35초', pour: '2회 분할', note: '' },
+    'medium-dark': { grind: '20~24', ratio: '1:14', time: '2:45~3:15', temp: '87~91°C', bloom: '25ml × 30초', pour: '2회 분할', note: '' },
+    'dark':        { grind: '18~22', ratio: '1:13', time: '2:30~3:00', temp: '85~89°C', bloom: '20ml × 25초', pour: '2회 분할', note: '' },
+  },
+  origami: {
+    'light':       { grind: '24~28', ratio: '1:15', time: '3:00~3:30', temp: '93~96°C', bloom: '30ml × 30초', pour: '3회 분할', note: '오리가미는 V60 또는 칼리타 필터 모두 사용 가능. 필터 선택에 따라 추출 속도가 달라집니다.' },
+    'medium-light':{ grind: '22~26', ratio: '1:15', time: '2:45~3:15', temp: '91~94°C', bloom: '30ml × 30초', pour: '3회 분할', note: '' },
+    'medium':      { grind: '20~24', ratio: '1:15', time: '2:30~3:00', temp: '89~92°C', bloom: '30ml × 30초', pour: '2~3회 분할', note: '' },
+    'medium-dark': { grind: '18~22', ratio: '1:14', time: '2:15~2:45', temp: '87~90°C', bloom: '25ml × 25초', pour: '2회 분할', note: '' },
+    'dark':        { grind: '16~20', ratio: '1:13', time: '2:00~2:30', temp: '85~88°C', bloom: '20ml × 20초', pour: '2회 분할', note: '' },
+  },
+  aeropress: {
+    'light':       { grind: '18~22', ratio: '1:12', time: '1:30~2:00', temp: '85~90°C', bloom: '-', pour: '역압 또는 표준 기법', note: '에어로프레스는 다양한 레시피를 실험할 수 있습니다. 라이트 빈은 낮은 온도와 긴 침출 시간이 어울립니다.' },
+    'medium-light':{ grind: '16~20', ratio: '1:12', time: '1:20~1:50', temp: '83~88°C', bloom: '-', pour: '역압 기법 권장', note: '' },
+    'medium':      { grind: '14~18', ratio: '1:11', time: '1:10~1:40', temp: '80~85°C', bloom: '-', pour: '표준 또는 역압', note: '' },
+    'medium-dark': { grind: '12~16', ratio: '1:11', time: '1:00~1:30', temp: '78~83°C', bloom: '-', pour: '표준 기법', note: '' },
+    'dark':        { grind: '10~14', ratio: '1:10', time: '0:50~1:10', temp: '75~80°C', bloom: '-', pour: '표준 기법', note: '' },
+  }
+};
+
+// Korean brand DB
+const BRANDS = [
+  {
+    name: '프릳츠 커피 컴퍼니', loc: '서울 망원동·한남동·을지로',
+    desc: '국내 스페셜티 씬을 이끄는 로스터리 카페. 복잡한 블렌드와 계절 싱글오리진이 특징.',
+    blends: [
+      { name: '에스프레소 블렌드', roast: 'medium', type: 'espresso', note: '초콜릿, 캐러멜, 과일 뉘앙스' },
+      { name: '드립 오브 더 데이', roast: 'light', type: 'pourover', note: '계절마다 변경되는 싱글오리진' },
+    ]
+  },
+  {
+    name: '테라로사', loc: '강릉·서울 여러 지점',
+    desc: '강릉에서 시작한 한국 스페셜티 커피의 선구자. 다양한 싱글오리진과 블렌드를 국내외에서 소싱.',
+    blends: [
+      { name: '강릉 블렌드', roast: 'medium', type: 'espresso', note: '고소하고 균형 잡힌 맛' },
+      { name: '에티오피아 예가체프', roast: 'light', type: 'pourover', note: '플로럴, 시트러스, 베리' },
+      { name: '과테말라 안티구아', roast: 'medium-light', type: 'pourover', note: '초콜릿, 견과류, 온화한 산미' },
+    ]
+  },
+  {
+    name: '커피리브레', loc: '서울 연남동·성수동',
+    desc: '국내 최초 스페셜티 커피 전문점 중 하나. WBC 챔피언 서필훈 대표가 이끌며 높은 품질 기준.',
+    blends: [
+      { name: '리브레 에스프레소', roast: 'medium-light', type: 'espresso', note: '밝은 산미, 꽃향기' },
+      { name: '시즌 싱글오리진', roast: 'light', type: 'pourover', note: '계절마다 변경' },
+    ]
+  },
+  {
+    name: '앤트러사이트 커피', loc: '서울 합정·한남·이태원',
+    desc: '인더스트리얼 감성의 스페셜티 카페. 독자적인 로스팅 철학으로 국내외 팬층 보유.',
+    blends: [
+      { name: '하우스 블렌드', roast: 'medium', type: 'espresso', note: '다크 초콜릿, 캐러멜' },
+      { name: '필터 커피', roast: 'medium-light', type: 'pourover', note: '클린하고 밝은 컵' },
+    ]
+  },
+  {
+    name: '나무사이로', loc: '서울 연남동',
+    desc: '조용하고 집중적인 커피 경험을 추구하는 스몰 로스터리. 원두의 본래 맛을 살리는 라이트 로스팅.',
+    blends: [
+      { name: '에티오피아 워시드', roast: 'light', type: 'pourover', note: '재스민, 복숭아, 레몬' },
+      { name: '콜롬비아 게이샤', roast: 'light', type: 'pourover', note: '플로럴, 열대과일' },
+    ]
+  },
+  {
+    name: '모모스커피', loc: '부산 전하동·광안리',
+    desc: '부산 기반 스페셜티 로스터리. WBC 2위 전주연 바리스타 배출. 깔끔하고 명확한 플레이버.',
+    blends: [
+      { name: '모모스 블렌드', roast: 'medium', type: 'espresso', note: '꿀, 포도, 갈색설탕' },
+      { name: '싱글 드립', roast: 'light', type: 'pourover', note: '계절 오리진' },
+    ]
+  },
+  {
+    name: '빈브라더스', loc: '서울 연남동·여의도·판교',
+    desc: '트렌디한 공간과 높은 품질의 스페셜티 커피를 선보이는 도심형 로스터리 카페.',
+    blends: [
+      { name: '브런치 블렌드', roast: 'medium-light', type: 'espresso', note: '달콤하고 균형감 있는 에스프레소' },
+      { name: '케냐 AA', roast: 'light', type: 'pourover', note: '블랙커런트, 토마토, 시트러스' },
+    ]
+  },
+  {
+    name: '커피몽타주', loc: '서울 을지로',
+    desc: '을지로 힙스터 문화를 이끄는 스페셜티 카페. 공간과 음악, 커피가 조화를 이루는 복합 문화공간.',
+    blends: [
+      { name: '몽타주 블렌드', roast: 'medium', type: 'espresso', note: '쓴맛과 단맛의 균형' },
+      { name: '오늘의 드립', roast: 'medium-light', type: 'pourover', note: '계절 변경' },
+    ]
+  },
+  {
+    name: '엘카페', loc: '서울 강남·신사·판교',
+    desc: '합리적인 가격의 스페셜티 원두와 세련된 공간으로 인기. 라이트에서 미디엄까지 폭넓은 라인업.',
+    blends: [
+      { name: '시그니처 에스프레소', roast: 'medium', type: 'espresso', note: '초콜릿, 견과류' },
+      { name: '에티오피아 내추럴', roast: 'light', type: 'pourover', note: '딸기, 블루베리, 와인' },
+    ]
+  },
+  {
+    name: '폴 바셋 (Paul Bassett)', loc: '전국 다수',
+    desc: '호주 WBC 챔피언 폴 바셋과 협력한 국내 스페셜티 브랜드. 에스프레소 품질에 특히 강점.',
+    blends: [
+      { name: '시그니처 블렌드', roast: 'medium', type: 'espresso', note: '풍부한 크레마, 바닐라·초콜릿' },
+      { name: '필터 블렌드', roast: 'medium-light', type: 'pourover', note: '산미와 단맛의 조화' },
+    ]
+  },
+  {
+    name: '블루포트 커피', loc: '서울 마포·홍대',
+    desc: '홍대 인근을 기반으로 한 인기 독립 로스터리. 실험적인 가공법 원두를 자주 취급.',
+    blends: [
+      { name: '포트 블렌드', roast: 'medium', type: 'espresso', note: '카카오, 아몬드, 캐러멜' },
+      { name: '내추럴 싱글', roast: 'light', type: 'pourover', note: '발효과일, 자두' },
+    ]
+  },
+  {
+    name: '메가커피 (MEGA MGC)', loc: '저가 프리미엄 커피 브랜드. 이마트24와의 협업으로 대중화. 가성비 높은 에스프레소 블렌드.',
+    blends: [
+      { name: '메가 블렌드', roast: 'medium-dark', type: 'espresso', note: '진하고 고소한 대중적 맛' },
+    ]
+  },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentMethod = 'espresso';
+let currentRoast = 'light';
+let currentGrind = 10;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const idx = {'recipe':0,'log':1,'brands':2}[name];
+  document.querySelectorAll('nav button')[idx].classList.add('active');
+  if (name === 'log') renderLogs();
+  if (name === 'brands') renderBrands();
+}
+
+// ============================================================
+// METHOD
+// ============================================================
+function setMethod(method) {
+  currentMethod = method;
+  document.getElementById('btn-espresso').classList.toggle('active', method === 'espresso');
+  document.getElementById('btn-pourover').classList.toggle('active', method === 'pourover');
+  document.getElementById('espresso-params').style.display = method === 'espresso' ? '' : 'none';
+  document.getElementById('pourover-params').style.display = method === 'pourover' ? '' : 'none';
+  document.getElementById('pourover-dripper-wrap').style.display = method === 'pourover' ? '' : 'none';
+  document.getElementById('grind-unit-label').textContent = method === 'espresso' ? '(에스프레소 기준)' : '가격의 가는(푸어오버 기준)';
+
+  // Reset grind defaults
+  if (method === 'espresso') { currentGrind = 10; }
+  else { currentGrind = 22; }
+  document.getElementById('grind-slider').value = currentGrind;
+  updateGrind(currentGrind);
+  document.getElementById('recipe-result').style.display = 'none';
+  document.getElementById('suggestion-section').style.display = 'none';
+}
+
+// ============================================================
+// ROAST
+// ============================================================
+function setRoast(roast) {
+  currentRoast = roast;
+  document.querySelectorAll('.roast-chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.roast === roast);
+  });
+}
+
+// ============================================================
+// GRIND
+// ============================================================
+function updateGrind(val) {
+  currentGrind = parseInt(val);
+  document.getElementById('grind-display').textContent = val;
+  const ranges = GRIND_DESCS[currentMethod].ranges;
+  const match = ranges.find(r => currentGrind <= r.max) || ranges[ranges.length - 1];
+  document.getElementById('grind-desc-text').textContent = match.label;
+}
+
+// ============================================================
+// RECIPE
+// ============================================================
+function getRecipe() {
+  const beanName = document.getElementById('bean-name').value || '조퍴라이 안 함';
+  let html = '';
+
+  if (currentMethod === 'espresso') {
+    const r = ESP_RECIPES[currentRoast];
+    const dose = parseFloat(document.getElementById('dose').value);
+    const yld = parseFloat(document.getElementById('yield').value);
+    const time = parseInt(document.getElementById('time').value);
+    const ratio = (yld / dose).toFixed(1);
+
+    html = `
+      <div class="recipe-title">☕ 에스프레소 레시피 - ${beanName} <span class="badge badge-${currentRoast.replace('-light','').replace('-dark','')}">${ROAST_LABELS[currentRoast]}</span></div>
+      <div class="recipe-row"><span class="key">권장 분쇄도</span><span class="val">${r.grind}</span></div>
+      <div class="recipe-row"><span class="key">입뢹한 분쇄더</span><span class="val">${currentGrind} ${getGrindAlert(currentRoast, currentGrind, 'espresso')}</span></div>
+      <div class="recipe-row"><span class="key">투입량 (Dose)</span><span class="val">${dose}g</span></div>
+      <div class="recipe-row"><span class="key">목픀수율 (Yield)</span><span class="val">${yld}g</span></div>
+      <div class="recipe-row"><span class="key">비율 (Ratio)</span><span class="val">1:${ratio}</span></div>
+      <div class="recipe-row"><span class="key">목픀 추출 시간</span><span class="val">${time}초 <small>(권장: ${r.time})</small></span></div>
+      <div class="recipe-row"><span class="key">권장 몷온도</span><span class="val">${r.temp}</span></div>
+      ${r.note ? `<div class="recipe-note">💡 ${r.note}</div>` : ''}
+    `;
+  } else {
+    const dripper = document.getElementById('dripper').value;
+    const r = PO_RECIPES[dripper][currentRoast];
+    const dose = parseFloat(document.getElementById('po-dose').value);
+    const temp = parseInt(document.getElementById('po-temp').value);
+    const water = Math.round(dose * parseFloat(r.ratio.split(':')[1]));
+
+    html = `
+      <div class="recipe-title">🫖 푸어오버 레시피 - ${beanName} <span class="badge badge-${currentRoast.replace('-light','').replace('-dark','')}">${ROAST_LABELS[currentRoast]}</span></div>
+      <div class="recipe-row"><span class="key">드리퍼</span><span class="val">${{v60:'하리오 V60',kalita:'칼리타 웨이브',chemex:'컀멕스',origami:'오리가미',aeropress:'에어로프레스'}[dripper]}</span></div>
+      <div class="recipe-row"><span class="key">권장 분쇄더</span><span class="val">${r.grind}</span></div>
+      <div class="recipe-row"><span class="key">입뢹한 분쇄더</span><span class="val">${currentGrind} ${getGrindAlert(currentRoast, currentGrind, 'pourover')}</span></div>
+      <div class="recipe-row"><span class="key">윬두더</span><span class="val">${dose}g</pan></div>
+      <div class="recipe-row"><span class="key">물 양</span><span class="val">${water}ml (비율 ${r.ratio})</span></div>
+      <div class="recipe-row"><span class="key">물 온도</span><span class="val">${temp}°C <small>(권장: ${r.temp})</small></span></div>
+      <div class="recipe-row"><span class="key">뜸 들이기</span><span class="val">${r.bloom}</span></div>
+      <div class="recipe-row"><span class="key">총 추출 시간</span><span class="val">${r.time}</span></div>
+      <div class="recipe-row"><span class="key">붓기 방법</span><span class="val">${r.pour}</span></div>
+      ${r.note ? `<div class="recipe-note">💡 ${r.note}</div>` : ''}
+    `;
+  }
+
+  document.getElementById('recipe-content').innerHTML = html;
+  document.getElementById('recipe-result').style.display = 'block';
+
+  // Show suggestions from last log
+  showSuggestions();
+
+  document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function getGrindAlert(roast, grind, method) {
+  const recs = {
+    espresso: { light: [8,11], 'medium-light':[9,12], medium:[10,13], 'medium-dark':[11,14], dark:[12,16] },
+    pourover:  { light:[24,28], 'medium-light':[22,26], medium:[20,24], 'medium-dark':[18,22], dark:[16,20] }
+  };
+  const [lo, hi] = recs[method][roast];
+  if (grind < lo) return `<span style="color:#e8b060">⬆ 강맀 더 굵게 권장</span>`;
+  if (grind > hi) return `<span style="color:#e86060">⬇ 조금 더 가늘게 권장</span>`;
+  return `<span style="color:#60b060">✓ 적정 범위</span>`;
+}
+
+// ============================================================
+// SUGGESTION FROM LAST LOG
+// ============================================================
+function showSuggestions() {
+  const logs = getLogs();
+  if (!logs.length) { document.getElementById('suggestion-section').style.display = 'none'; return; }
+  const last = logs[0];
+  const s = last.satisfaction;
+  if (s === 'great') { document.getElementById('suggestion-section').style.display = 'none'; return; }
+
+  let adjustments = [];
+  let grindAdj = 0;
+  let doseAdj = 0;
+  let timeAdj = 0;
+
+  if (s === 'sour') {
+    grindAdj = -1; timeAdj = +3;
+    adjustments.push({ key: '분쇄도', val: `${last.grind} → ${last.grind - 1}`, change: '더 가늘게 (과소추출 개선)' });
+    adjustments.push({ key: '추출 시간', val: `+3초 늘리기`, change: '접촉 시간 증가로 산미 감소' });
+  } else if (s === 'bitter') {
+    grindAdj = +1; timeAdj = -3;
+    adjustments.push({ key: '분쇄도', val: `${last.grind} → ${last.grind + 1}`, change: '더 굵게 (과다추출 개선)' });
+    adjustments.push({ key: '추출 시간', val: `-3초 줄이기`, change: '과다추출 방지' });
+  } else if (s === 'weak') {
+    grindAdj = -1; doseAdj = +0.5;
+    adjustments.push({ key: '분쇄도', val: `${last.grind} → ${last.grind - 1}`, change: '더 가늘게 (추출 강도 증가)' });
+    adjustments.push({ key: '투입량', val: `+0.5g 증가`, change: '원두 양 늘려 농도 높이기' });
+  } else if (s === 'strong') {
+    grindAdj = +1; doseAdj = -0.5;
+    adjustments.push({ key: '분쇄도', val: `${last.grind} → ${last.grind + 1}`, change: '더 굵게 (농도 낮추기)' });
+    adjustments.push({ key: '투입량', val: `-0.5g 감소`, change: '원두 양 줄이기' });
+  } else if (s === 'good') {
+    adjustments.push({ key: '분쇄도', val: `${last.grind} 유지`, change: '미세 조정 범위 내 실험' });
+  }
+
+  if (!adjustments.length) { document.getElementById('suggestion-section').style.display = 'none'; return; }
+
+  const satisfactionLabel = {
+    sour: '너무 셔요 (과소추출)', bitter: '너무 써요 (과다추출)',
+    weak: '맛이 연해요', strong: '너무 진해요', good: '좋음 (미세 조정)'
+  }[s] || s;
+
+  let html = `
+    <h3>📈 지난 기록 기반 오늘 조정 제안</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">이전 평가: <b style="color:var(--accent2)">${satisfactionLabel}</b> (${last.bean || '원두 미기재'}, 분쇄도 ${last.grind})</p>
+    ${adjustments.map(a => `
+      <div class="suggestion-row">
+        <span class="s-key">${a.key}</span>
+        <span class="s-val">${a.val}</span>
+        <span class="s-change">${a.change}</span>
+      </div>
+    `).join('')}
+  `;
+
+  document.getElementById('suggestion-content').innerHTML = html;
+  document.getElementById('suggestion-section').style.display = 'block';
+}
+
+// ============================================================
+// LOG STORAGE
+// ============================================================
+function getLogs() {
+  try { return JSON.parse(localStorage.getItem('coffee_logs') || '[]'); }
+  catch { return []; }
+}
+
+function saveLogs(logs) {
+  localStorage.setItem('coffee_logs', JSON.stringify(logs));
+}
+
+function saveLog() {
+  const method = document.getElementById('log-method').value;
+  const bean = document.getElementById('log-bean').value;
+  const grind = parseInt(document.getElementById('log-grind').value);
+  const dose = parseFloat(document.getElementById('log-dose').value);
+  const yld = parseFloat(document.getElementById('log-yield').value);
+  const time = parseInt(document.getElementById('log-time').value);
+  const roast = document.getElementById('log-roast').value;
+  const sour = parseInt(document.getElementById('taste-sour').value);
+  const bitter = parseInt(document.getElementById('taste-bitter').value);
+  const body = parseInt(document.getElementById('taste-body').value);
+  const sweet = parseInt(document.getElementById('taste-sweet').value);
+  const satisfaction = document.getElementById('log-satisfaction').value;
+  const note = document.getElementById('log-note').value;
+
+  if (!grind || isNaN(grind)) { alert('분쇄도를 입력해 주세요.'); return; }
+
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleString('ko-KR'),
+    method, bean, grind, dose, yield: yld, time, roast,
+    taste: { sour, bitter, body, sweet },
+    satisfaction, note
+  };
+
+  const logs = getLogs();
+  logs.unshift(entry);
+  saveLogs(logs);
+
+  // Reset form
+  document.getElementById('log-note').value = '';
+  ['taste-sour','taste-bitter','taste-body','taste-sweet'].forEach(id => {
+    document.getElementById(id).value = 3;
+    document.getElementById(id+'-val').textContent = '3';
+  });
+  document.getElementById('log-satisfaction').value = 'good';
+
+  renderLogs();
+  alert('✅ 기록이 저장되었습니다!');
+}
+
+function deleteLog(id) {
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  const logs = getLogs().filter(l => l.id !== id);
+  saveLogs(logs);
+  renderLogs();
+}
+
+function renderLogs() {
+  const logs = getLogs();
+  const container = document.getElementById('log-list');
+
+  if (!logs.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div>아직 추출 기록이 없어요.<br>위에서 오늘 커피를 기록해보세요!</div></div>';
+    return;
+  }
+
+  const satLabel = { great:'😍 아주 좋음', good:'😊 좋음', sour:'😬 너무 셔요', bitter:'😖 너무 써요', weak:'😐 연해요', strong:'😵 너무 진해요' };
+  const methodLabel = { espresso:'☕ 에스프레소', v60:'🫖 V60', kalita:'🫖 칼리타', chemex:'🫖 케멕스', aeropress:'🫖 에어로프레스' };
+
+  container.innerHTML = logs.map(l => `
+    <div class="log-item">
+      <button class="delete-btn" onclick="deleteLog(${l.id})">🗑</button>
+      <div class="log-date">${l.date}</div>
+      <div class="log-head">
+        <div>
+          <div class="log-method">${methodLabel[l.method] || l.method}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:2px">${l.bean || '원두 미기재'} · ${ROAST_LABELS[l.roast] || l.roast}</div>
+        </div>
+        <div style="text-align:right;font-size:13px">
+          <div style="color:var(--accent2)">분쇄도 ${l.grind}</div>
+          ${l.dose ? `<div style="color:var(--text2)">${l.dose}g → ${l.yield || '?'}g${l.time ? ` · ${l.time}초` : ''}</div>` : ''}
+        </div>
+      </div>
+      <div class="log-tags">
+        <span class="tag">${satLabel[l.satisfaction] || l.satisfaction}</span>
+        ${l.taste ? `<span class="tag sour">산미 ${l.taste.sour}/5</span><span class="tag bitter">쓴맛 ${l.taste.bitter}/5</span><span class="tag">바디 ${l.taste.body}/5</span><span class="tag">단맛 ${l.taste.sweet}/5</span>` : ''}
+      </div>
+      ${l.note ? `<div class="log-note">${l.note}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// BRANDS
+// ============================================================
+function renderBrands(filter = '') {
+  const f = filter.trim().toLowerCase();
+  const list = document.getElementById('brand-list');
+  const filtered = f
+    ? BRANDS.filter(b =>
+        b.name.toLowerCase().includes(f) ||
+        b.blends.some(bl => bl.name.toLowerCase().includes(f) || bl.note.toLowerCase().includes(f))
+      )
+    : BRANDS;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>검색 결과가 없어요.</div></div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => `
+    <div class="brand-card">
+      <div class="brand-name">${b.name}</div>
+      <div class="brand-loc">📍 ${b.loc}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">${b.desc}</div>
+      <div class="brand-blends">
+        ${b.blends.map(bl => `
+          <div class="blend-chip" onclick="applyBlend('${bl.name}', '${bl.roast}', '${bl.type}')" title="${bl.note}">
+            ${bl.name} · <small>${ROAST_LABELS[bl.roast]}</small>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterBrands(val) {
+  renderBrands(val);
+}
+
+function applyBlend(name, roast, type) {
+  document.getElementById('bean-name').value = name;
+  setRoast(roast);
+  if (type === 'espresso') setMethod('espresso');
+  else { setMethod('pourover'); }
+  showPage('recipe');
+  alert(`"${name}" 정보를 레시피 페이지에 적용했어요! 레시피 추천받기를 눌러주세요.`);
+}
+
+// ============================================================
+// DATALIST for bean name autocomplete
+// ============================================================
+function populateDatalist() {
+  const all = BRANDS.flatMap(b => [b.name, ...b.blends.map(bl => `${b.name} - ${bl.name}`)]);
+  const dl = document.getElementById('brand-suggestions');
+  dl.innerHTML = all.map(s => `<option value="${s}">`).join('');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+populateDatalist();
+updateGrind(10);
+</script>
+</body>
+</html>
